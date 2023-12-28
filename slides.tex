@@ -1,0 +1,372 @@
+\documentclass[handout]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage[polish]{babel}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{qrcode}
+\usepackage{dirtytalk}
+
+\title{Post-mortems}
+\author{Tomasz Nowak}
+\date{}
+
+\setlength{\leftmargini}{0pt}
+\newcommand{\myframe}[4]{
+	\begin{frame}
+		\frametitle{
+			\begin{minipage}{0.1\textwidth}
+				\qrcode[height=1cm]{#1}
+			\end{minipage}
+			\begin{minipage}{0.9\textwidth}
+				#2,
+				#3 \newline
+				\small{\href{#1}{#1}}
+			\end{minipage}
+		}
+		\begin{itemize}
+			#4
+		\end{itemize}
+	\end{frame}
+}
+
+\begin{document}
+\frame{\titlepage}
+
+\myframe{https://shorturl.at/dMY01}{Allegro}{31.08.2018}{
+	\item Discount: 100x Honor 7C phones, price 850 zł $\to$ 1 zł. \pause
+	\item Allegro was prepared. They manually scaled up resources. \pause
+	\item \say{due to a misconfiguration, some services reserved much more resources than they actually needed.} \pause
+	\item \say{bad interactions between the autoscaler scaling services up and the cluster watchdog killing off unresponsive instances.} \pause
+	\item connection pools and file descriptors were saturated for incoming and outgoing network connections \pause
+	\item \say{one of the circuit breakers between our services was not correctly configured}: too high threshold for triggering \pause
+	\item \say{we plan to introduce a mechanism which will be able to tell backend services to generate simplified, cacheable responses} \pause
+	\item \say{the traffic which brought us down, was in large part bots rather than human users}
+}
+
+\myframe{https://shorturl.at/qrDM2}{CloudFlare}{03.03.2013}{
+		\item DDoS against a costumer. \pause
+		\item Usual response: profile the attack, find pattern, block it. \pause
+		\item Added a rule to all routers. \pause
+		\item \say{What should have happened is that no packet should have matched that rule because no packet was actually that large. What happened instead is that the routers encountered the rule and then proceeded to consume all their RAM until they crashed.} \pause
+		\item \say{many of the routers crashed in such a way that they did not reboot automatically and we were not able to access the routers' management ports. Even though some data centers came back online initially, they fell back over again because all the traffic across our entire network hit them and overloaded their resources.} \pause
+		\item \say{ask them to physically access the routers and perform a hard reboot}
+}
+
+\myframe{https://shorturl.at/aELM1}{CloudFlare}{21.06.2022}{
+		\item \say{a Change Request ticket was created, which includes a dry-run of the change, as well as a stepped rollout procedure. Before it was allowed to go out, it was also peer reviewed by multiple engineers.} \pause
+		\item The changes looked harmless, but in the routers' configs, some lines were reoredered. \texttt{term REJECT-THE-REST} was put before other rules. \pause
+		\item Deployed to prod only on some locations, no harm as they didn't use this part of their new architecture. \pause
+		\item Then deployed to busiest locations, but still not with locations with this architecture. \pause
+		\item Changes reached all locations, took 19 locations offline, 50\% of requests failed. \pause
+		\item Fix was \say{delayed as network engineers walked over each other's changes, reverting the previous reverts, causing the problem to re-appear sporadically.}
+}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/fhvGH}
+		\href{https://shorturl.at/fhvGH}{https://shorturl.at/fhvGH}
+		Facebook
+		5.10.2021
+	}
+	\begin{itemize}
+		\item Maintenance of servers / routers. Often need to take part of the backbone offline. \pause
+		\item A command was ran to assess the availability of global backbone capacity, which unintentionally took down all the connections in the network. The systems are designed to prevent mistakes like this, but a bug in that audit tool prevented it from stopping the command. \pause
+		\item For reliable operation, their DNS servers disable BGP advertisements when they can't speak to data centers, since this is an indication of a bad network connection. The backbone was shut down so it disabled BGP advertisements. \pause
+		\item They couldn't access their data centers and the loss of DNS broke internal tools they normally use to resolve such outages. \pause
+		\item They sent engineers to the data centers to debug and restart the systems. This took time, because these facilities are designed with high levels of physical and system security. \pause
+		\item Dips in power usage in the range of tens of megawatts.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/tDZ02}
+		\href{https://shorturl.at/tDZ02}{https://shorturl.at/tDZ02}
+		Mozilla
+		2.02.2022
+	}
+	\begin{itemize}
+		\item Firefox has some services on Google Cloud Platform, which some day changed load balancers to use HTTP/3 by default.\pause
+		\item All Firefox browsers were suddenly hanging. They saw that they didn't change anything, but their data collection system started using HTTP/3.\pause
+		\item Explicit disable of HTTP/3 in GCP fixed the issue, but they didn't understand why at the time.\pause
+		\item Their data collection system was their only Rust code with their network stack, which used another library for network access, which lower-cases the \texttt{Content-Length} header, but their HTTP/3 code was case-sensitive.\pause
+		\item It looped the code, which disabled network communication, as all communication goes through one socket thread.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/dprY0}
+		\href{https://shorturl.at/dprY0}{https://shorturl.at/dprY0}
+		Google
+		24.07.2014
+	}
+	\begin{itemize}
+		\item Gmail, Google+, Calendar, Documents, etc. were shut down for 25 minutes. \pause
+		\item Internal system that generates configurations encountered a bug, it generated incorrect ones. \pause
+		\item Config was sent to live services, it made the users' requests be ignored, and services generated errors. \pause
+		\item The same system later automatically generated a new correct configuration and began sending it, issue resolved.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/rHL16}
+		\href{https://shorturl.at/rHL16}{https://shorturl.at/rHL16}
+		Google
+		31.07.2009
+	}
+	\begin{itemize}
+		\item Manually and automatically updated list of malicious sites. \pause
+		\item Human error: \texttt{/} added to the rules. \pause
+		\item Every google result was labelled with \say{This site may harm your computer}. \pause
+		\item Issue resolved after an hour.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/wxzC8}
+		\href{https://shorturl.at/wxzC8}{https://shorturl.at/wxzC8}
+		Google
+		05.04.2017
+	}
+	\begin{itemize}
+		\item Replica of master server for config propagation lost access to the file system. \pause
+		\item Replica was changed to be the master server, system detected something was wrong, all load balancers started using oldest correct config from master server (which was outdated). \pause
+		\item Updating the master server triggered garbage collector to remove outdated configs. \pause
+		\item Server failed health check, automatic reboot. Clients got errors.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/ptvW9}
+		\href{https://shorturl.at/ptvW9}{https://shorturl.at/ptvW9}
+		OWASA water treatment plant
+		10.02.2017
+	}
+	\begin{itemize}
+		\item \say{unintentional [water treatment plant] operator key stroke} \pause
+		\item prompted a water shortage in Orange County that closed businesses, placed towns under states of emergency. Customers were unable to use or drink their water for more than twenty-four hours. \pause
+		\item accidentally instructed the plant's fluoride feed pump to change feed rate 10\% $\to$ 80\%. \pause
+		\item Fluoride is added to water to prevent tooth decay. \pause
+		\item \say{The operator tried to change the command about twelve seconds later, but according to the report, the change didn't register.} \pause
+		\item A lead operator at the plant noticed the extra high levels but did not take corrective action. \pause
+		\item \say{The water main break may have been the result of the pipe bending because of pressure and settling.} \pause
+		\item \say{The break leaked about 1.2 million gallons of water, causing pressure in the system to plummet. As a result, customers were ordered not to use or drink their water because low flow can allow bacteria to grow in pipes.}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/cjlnF}
+		\href{https://shorturl.at/cjlnF}{https://shorturl.at/cjlnF}
+		Rust crates.io
+		21.06.2023
+	}
+	\begin{itemize}
+		\item 15 minutes of crates.io failure, 3M failed requests. \pause
+		\item Pull request for migrating to AWS S3, refactored how endpoints create URLs. \pause
+		\item Missing slash when generating URLs, e.g. \texttt{static.crates.iocrates} instead of \texttt{static.crates.io/crates}. \pause
+		\item There were tests, but on prod there were different env vars. \pause
+		\item Easy one minute fix, just rollback deployment.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/cdpNZ}
+		\href{https://shorturl.at/cdpNZ}{https://shorturl.at/cdpNZ}
+		Amazon AWS
+		02.06.2012
+	}
+	\begin{itemize}
+		\item Weather warnings of a storm over their datacenter.
+			Changes in datacenter cancelled, more personnel overnight. \pause
+		\item Power fluctuations, a large voltage spike, electrical switches initiated transfer to generator power. \pause
+		\item Generators failed to provide stable voltage. Servers were running on UPS, but not for long. 20 minutes of downtime. \pause
+		\item But generators were regorously tested! They passed load tests (8h of testing), a few months ago they successfully generated power for the whole datacenter, they were new and they are being tested weekly.
+			They operated flawlessly before.  \pause
+		\item Clients' servers were offline. Booting them was slow, as data volumes could be in an inconsistent state (e.g. poweroff mid-write). It requires manual checks by clients to see if everything is fine. \pause
+		\item A bug appeared and AWS load balancing filled up the event queue, clients also did a lot of requests for new instances. Events fell behind. \pause
+		\item Another bug appeared and some \say{Multi Availability Zones} didn't change the main databases
+			from the faulthy datacenter to the backup ones. It triggered a failsafe and required manual intervention.
+	\end{itemize}
+\end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/eBFM3}
+		\href{https://shorturl.at/eBFM3}{https://shorturl.at/eBFM3}
+		 ARPANET
+		 27.10.1980
+	 }
+	 \begin{itemize}
+		\item The network was unusable for several hours. All the \say{routers} (Interface Message Processor) didn't communicate. Restarting the IMPs was OK, until they connected to the net, and then they failed. \pause
+		\item One IMP flipped some bits in routing data. \pause
+		\item There were checksum, but they were checked periodically for software efficiency.\pause
+		\item Incorrect sequence numbers caused packets to be sent in a loop and router buffers began to fill.\pause
+		\item Full buffers caused loss of keepalive packets and nodes took themselves off the network. 
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/mxzRY}
+		\href{https://shorturl.at/mxzRY}{https://shorturl.at/mxzRY}
+		 FirstEnergy / General Electric
+		 14.08.2003
+	 }
+	\begin{itemize}
+		\item Hot day, high demand for electricity (cooling). Tree branches touched power lines in Ohio. \pause
+		\item Bug with race condition appeared in the energy management system. It stalled FirstEnergy's control room alarm system for over an hour. System operators were unaware of the malfunction. The failure deprived them of both audio and visual alerts for important changes in system state. \pause
+		\item The lack of alarms led operators to dismiss a call from American Electric Power about the tripping and reclosure of a 345 kV shared line in northeast Ohio. \pause
+		\item Overload of a power line $\to$ more heat in the power line $\to$ metal conductors expand $\to$ line sags too low $\to$ a flash over to nearby objects (e.g. trees) occurs $\to$ transient increase in current $\to$ power line disconnected for safety. \pause
+		\item Big changes of voltage, generators go off for safety, cascading effect, 256 power plants offline. \pause
+		\item Blackout, 55 million people affected for 2h-4 days, including NYC.
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://example.com}
+		\href{REDACTED}{REDACTED}
+		JaneStreet
+		REDACTED
+	 }
+	\begin{itemize}
+		\item REDACTED
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/cehoU}
+		\href{https://shorturl.at/cehoU}{https://shorturl.at/cehoU}
+		EVE Online
+		5.12.2007
+	}
+	\begin{itemize}
+		\item Game update. A script changed CWD and deleted some old files, e.g. the game's \texttt{boot.ini}. \pause
+		\item The script command ignored the CWD and assumed that it was from the root directory. \pause
+		\item Windows users got their \texttt{/boot.ini} file removed. \pause
+		\item It passed tests, as Windows recovers when it's on the first partition of the boot drive
+			 (and fails to recover otherwise), the testing env was always the same.
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/hioBN}
+		\href{https://shorturl.at/hioBN}{https://shorturl.at/hioBN}
+		GitHub
+		21.10.2018
+	}
+	\begin{itemize}
+		\item Maintenance of network between data centers. Mistake, 43 seconds of outage. \pause
+		\item US West and US East got disconnected, algorithm changed a read replica to a write primary in US West. \pause
+		\item Connection restored, but now there are two primaries, each had \texttt{write}s that the other didn't have; unable to revert to one primary. \pause
+		\item Decision to stop writes, e.g. pushes, webhook delivery, GitHub Pages builds. GitHub partially unusable. \pause
+		\item Plan: restore backups, synchronize replicas, fall back to one primary. Backups are made often, but reverting terabytes takes hours. \pause
+		\item Data on the sites was in weird state, inconsistent. No data loss though. \pause
+		\item Restoring backups took longer than expected, as there was additional load from active GitHub pages and lot of synchronization attempts. \pause
+		\item 24 hours of degradation.
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	\frametitle{
+		\qrcode[height=1cm]{https://shorturl.at/gAEKY}
+		\href{https://shorturl.at/gAEKY}{https://shorturl.at/gAEKY}
+		Knight Capital
+		1.08.2012
+	}
+	\begin{itemize}
+		\item \pause Bankruptcy of Knight Capital, 440 million dollar loss. \pause
+		\item new market, one month announcement, Knight wanted to prepare.
+			They updated software (which was 8 years old) that split big orders into many smaller ones.
+			They reused a boolean for activating unused code for a new functionality. \pause
+		\item Mistake: deployed to seven out of eight servers, no review, no alert system in case of discrepancy, no written procedures for supervision. \pause
+		\item 97 automatic email messages about unusual state, but not on high-priority channel, and they weren't read. \pause
+		\item Seven servers worked correctly, the eight ran the unused code that looped splitting of orders. \pause
+		\item No kill switch, 20 minutes of looking at what is wrong, they reverted to old code, now 8 out of 8 servers were \say{bad}.
+		\item 45 minutes running, long on 80 stocks, 3.5 billion dollars, short 3.15 billion dollars.
+	\end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	 \frametitle{
+		 \qrcode[height=1cm]{https://shorturl.at/rBTY7}
+		 \href{https://shorturl.at/rBTY7}{https://shorturl.at/rBTY7}
+		 Microsoft
+		 29.02.2012
+	 }
+	 \begin{itemize}
+		\item Code for creating certificates set the valid-to date for current time plus one year.
+			Failed on February 29th. \pause
+		\item Any new Virtual Machines in Windows Azure didn't initialize, automatically after 25 minutes the machines reboots, after three times it reports a hardware error and moves the VM to another server. When a certain number of servers fails, manual intervention is needed. \pause
+		\item Admins disabled service management. Created a fix, tested it, pushed to prod. \pause
+		\item Some clusters weren't fully updated and it required time for them to update, admins pushed for faster deployment, but the ones that weren't updated didn't have fully compatible networking with the fix, which shut down those clusters from the network. \pause
+		\item Outage that lasted for most of a day.
+	 \end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	 \frametitle{
+		 \qrcode[height=1cm]{https://shorturl.at/gxyC5}
+		 \href{https://shorturl.at/gxyC5}{https://shorturl.at/gxyC5}
+		 Linux
+		 7.01.2012
+	 }
+	 \begin{itemize}
+		 \item Leap second occurred, \texttt{CLOCK\_REALTIME} in Linux was rewound by one second. \pause
+		 \item Not done through \texttt{hrtimer bsae.offset}, thus \texttt{TIMER\_ABSTIME} 
+			 \texttt{CLOCK\_REALTIME} timers got expired one second early,
+			 including timers set for less than one second. \pause
+		 \item This caused applications that used sleep for less than one second in a loop 
+			 to spinwait without sleeping, causing high load on many systems. 
+			 This caused a large number of web services to go down in 2012.
+	 \end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	 \frametitle{
+		 \qrcode[height=1cm]{https://shorturl.at/adlm7}
+		 \href{https://shorturl.at/adlm7}{https://shorturl.at/adlm7}
+		 European Space Agency
+		 4.06.1996
+	 }
+	 \begin{itemize}
+		 \item Unsuccessful test flight of Ariane 5 expendable launch system. The rocket veered off its flight path after launch and was destroyed. Loss: 4x Cluster mission spacecraft, 370 million dollars. \pause
+		 \item Software reused from Ariane 4, as then everything worked. \pause
+		 \item Ariane 5's flight path was different. It had greater acceleration.
+			 Pre-flight tests had never been performed on this code under Ariane 5 flight conditions. \pause
+		 \item A data conversion from 64-bit float to 16-bit int
+			 overflowed. For efficiency they removed software handler for this error trap
+			 (though there were some for other errors). \pause
+		 \item This led to a cascade of problems, culminating in destruction of the entire flight.
+	 \end{itemize}
+ \end{frame}
+
+ \begin{frame}
+	 \frametitle{
+		 \qrcode[height=1cm]{https://shorturl.at/beuG7}
+		 \href{https://shorturl.at/beuG7}{https://shorturl.at/beuG7}
+		 Valve
+		 14.01.2015
+	 }
+	 \begin{itemize}
+		 \item \texttt{STEAMROOT="\$(cd "\${0\%/*}" \&\& echo \$PWD)"} \newline
+		 	\texttt{\# Scary!} \newline
+		 	\texttt{rm -rf "\$STEAMROOT/"*} \pause
+		 \item Removing or moving \texttt{~/.local/steam} caused \texttt{STEAMROOT} to be empty,
+			 which did \texttt{rm -rf /} \pause
+		 \item After this blew up on social media, there were widespread reports that this was reported to Valve months earlier. But Valve doesn't triage most bugs, resulting in an extremely long time-to-mitigate, despite having multiple bug reports on this issue.
+	 \end{itemize}
+ \end{frame}
+
+\end{document}
