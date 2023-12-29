@@ -57,7 +57,7 @@
 }
 
 \myframe{https://shorturl.at/qrDM2}{CloudFlare}{03.03.2013}{
-	\item DDoS against a costumer. \pause
+	\item DDoS against a customer. \pause
 	\item Usual response: profile the attack, find pattern, block it. \pause
 	\item Added a rule to all routers. \pause
 	\item \say{What should have happened is that no packet should have matched that rule because no packet was actually that large. What happened instead is that the routers encountered the rule and then proceeded to consume all their RAM until they crashed.} \pause
@@ -67,7 +67,7 @@
 
 \myframe{https://shorturl.at/aELM1}{CloudFlare}{21.06.2022}{
 	\item \say{a Change Request ticket was created, which includes a dry-run of the change, as well as a stepped rollout procedure. Before it was allowed to go out, it was also peer reviewed by multiple engineers.} \pause
-	\item The changes looked harmless, but in the routers' configs, some lines were reoredered. \texttt{term REJECT-THE-REST} was put before other rules. \pause
+	\item The changes looked harmless, but in the routers' configs, some lines were reordered. \texttt{term REJECT-THE-REST} was put before other rules. \pause
 	\item Deployed to prod only on some locations, no harm as they didn't use this part of their new architecture. \pause
 	\item Then deployed to busiest locations, but still not with locations with this architecture. \pause
 	\item Changes reached all locations, took 19 locations offline, 50\% of requests failed. \pause
@@ -101,7 +101,7 @@
 \myframe{https://shorturl.at/rHL16}{Google}{31.07.2009}{
 	\item Manually and automatically updated list of malicious sites. \pause
 	\item Human error: \texttt{/} added to the rules. \pause
-	\item Every google result was labelled with \say{This site may harm your computer}. \pause
+	\item Every google result was labeled with \say{This site may harm your computer}. \pause
 	\item Issue resolved after an hour.
 }
 
@@ -132,15 +132,15 @@
 }
 
 \myframe{https://shorturl.at/cdpNZ}{Amazon AWS}{02.06.2012}{
-	\item Weather warnings of a storm over their datacenter.
-		Changes in datacenter cancelled, more personnel overnight. \pause
+	\item Weather warnings of a storm over their data center.
+		Changes in data center canceled, more personnel overnight. \pause
 	\item Power fluctuations, a large voltage spike, electrical switches initiated transfer to generator power. \pause
 	\item Generators failed to provide stable voltage. Servers were running on UPS, but not for long. 20 minutes of downtime. \pause
-	\item But generators were regorously tested! They always passed 8h of load testing, months ago they successfully generated power, weekly tests, they were new. \pause
-	\item Clients' servers were offline. Booting them was slow, as data volumes could be in an inconsistent state (e.g. poweroff mid-write). It requires manual checks by clients to see if everything is fine. \pause
+	\item But generators were rigorously tested! They always passed 8h of load testing, months ago they successfully generated power, weekly tests, they were new. \pause
+	\item Clients' servers were offline. Booting them was slow, as data volumes could be in an inconsistent state (e.g. power off mid-write). It requires manual checks by clients to see if everything is fine. \pause
 	\item A bug appeared, AWS load balancing filled up event queue, clients also did a lot of requests for new instances. Events fell behind. \pause
 	\item Another bug appeared and some \say{Multi Availability Zones} didn't change the main databases
-		from the faulthy datacenter to the backup ones. It triggered a failsafe, required manual intervention.
+		from the faulty data center to the backup ones. It triggered a fail safe, required manual intervention.
 }
 
 \myframe{https://shorturl.at/eBFM3}{ARPANET}{27.10.1980}{
@@ -148,7 +148,7 @@
 	\item One IMP flipped some bits in routing data. \pause
 	\item There were checksum, but they were only checked periodically for software efficiency.\pause
 	\item Incorrect sequence numbers caused packets to be sent in a loop and router buffers began to fill.\pause
-	\item Full buffers caused loss of keepalive packets and nodes took themselves off the network.
+	\item Full buffers caused loss of keep-alive packets and nodes took themselves off the network.
 }
 
 \myframe{https://shorturl.at/mxzRY}{FirstEnergy / General Electric}{14.08.2003}{
@@ -206,7 +206,7 @@
 
 \myframe{https://shorturl.at/gxyC5}{Linux}{7.01.2012}{
 	\item Leap second occurred, \texttt{CLOCK\_REALTIME} in Linux was rewound by one second. \pause
-	\item Not done through \texttt{hrtimer bsae.offset}, thus \texttt{TIMER\_ABSTIME}
+	\item Not done through \texttt{hrtimer base.offset}, thus \texttt{TIMER\_ABSTIME}
 		\texttt{CLOCK\_REALTIME} timers got expired one second early,
 		including timers set for less than one second. \pause
 	\item This caused applications that used sleep for less than one second in a loop
