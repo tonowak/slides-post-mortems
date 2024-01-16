@@ -56,15 +56,6 @@
 	\item \say{the traffic which brought us down, was in large part bots rather than human users}
 }
 
-\myframe{https://shorturl.at/qrDM2}{CloudFlare}{03.03.2013}{
-	\item DDoS against a customer. \pause
-	\item Usual response: profile the attack, find pattern, block it. \pause
-	\item Added a rule to all routers. \pause
-	\item \say{What should have happened is that no packet should have matched that rule because no packet was actually that large. What happened instead is that the routers encountered the rule and then proceeded to consume all their RAM until they crashed.} \pause
-	\item \say{many of the routers crashed in such a way that they did not reboot automatically and we were not able to access the routers' management ports. Even though some data centers came back online initially, they fell back over again because all the traffic across our entire network hit them and overloaded their resources.} \pause
-	\item \say{ask them to physically access the routers and perform a hard reboot}
-}
-
 \myframe{https://shorturl.at/aELM1}{CloudFlare}{21.06.2022}{
 	\item \say{a Change Request ticket was created, which includes a dry-run of the change, as well as a stepped rollout procedure. Before it was allowed to go out, it was also peer reviewed by multiple engineers.} \pause
 	\item The changes looked harmless, but in the routers' configs, some lines were reordered. \texttt{term REJECT-THE-REST} was put before other rules. \pause
@@ -88,39 +79,67 @@
 	\item All Firefox browsers were suddenly hanging. They saw that they didn't change anything, but their data collection system started using HTTP/3.\pause
 	\item Explicit disable of HTTP/3 in GCP fixed the issue, but they didn't understand why at the time.\pause
 	\item Their data collection system was their only Rust code with their network stack, which used another library for network access, which lower-cases the \texttt{Content-Length} header, but their HTTP/3 code was case-sensitive.\pause
-	\item It looped the code, which disabled network communication, as all communication goes through one socket thread.
-}
-
-\myframe{https://shorturl.at/dprY0}{Google}{24.07.2014}{
-	\item Gmail, Google+, Calendar, Documents, etc. were shut down for 25 minutes. \pause
-	\item Internal system that generates configurations encountered a bug, it generated incorrect ones. \pause
-	\item Config was sent to live services, it made the users' requests be ignored, and services generated errors. \pause
-	\item The same system later automatically generated a new correct configuration and began sending it, issue resolved.
+	\item It looped the code, which disabled network communication, as all communication goes through one socket thread.\pause
+	\item Lessons: Outside environment changes, even when we trust it.
+		Each part of the system should be tested, even when it is currently not used.
 }
 
 \myframe{https://shorturl.at/rHL16}{Google}{31.07.2009}{
 	\item Manually and automatically updated list of malicious sites. \pause
 	\item Human error: \texttt{/} added to the rules. \pause
 	\item Every google result was labeled with \say{This site may harm your computer}. \pause
-	\item Issue resolved after an hour.
+	\item Issue resolved after an hour.\pause
+	\item Lessons: Anything that is manually updated might introduce a bug.
+		Thorough testing of this component might have sounded silly and it doesn't seem important.
+		There should have been integration tests.
+		They could have at least checked whether \say{obviously safe} sites are indeed marked as safe.
 }
 
-\myframe{https://shorturl.at/wxzC8}{Google}{05.04.2017}{
-	\item Replica of master server for config propagation lost access to the file system. \pause
-	\item Replica was changed to be the master server, system detected something was wrong, all load balancers started using oldest correct config from master server (which was outdated). \pause
-	\item Updating the master server triggered garbage collector to remove outdated configs. \pause
-	\item Server failed health check, automatic reboot. Clients got errors.
+\myframe{https://shorturl.at/gAEKY}{Knight Capital}{1.08.2012}{
+	\item \pause Bankruptcy of Knight Capital, 440 million dollar loss. \pause
+	\item new market, one month announcement, Knight wanted to prepare.
+		They updated software (which was 8 years old) that split big orders into many smaller ones.
+		They reused a boolean for activating unused code for a new functionality. \pause
+	\item Mistake: deployed to seven out of eight servers, no review, no alert system in case of discrepancy, no written procedures for supervision. \pause
+	\item 97 automatic email messages about unusual state, but not on high-priority channel, and they weren't read. \pause
+	\item The eighth server ran the unused code that looped splitting of orders. \pause
+	\item No kill switch, 20 minutes of looking at what is wrong, they reverted to old code, now 8 out of 8 servers were \say{bad}. \pause
+	\item 45 minutes running, long on 80 stocks, 3.5 billion dollars, short 3.15 billion dollars.
 }
 
 \myframe{https://shorturl.at/ptvW9}{OWASA water treatment plant}{10.02.2017}{
 	\item \say{unintentional [water treatment plant] operator key stroke} \pause
-	\item prompted a water shortage in Orange County that closed businesses, placed towns under states of emergency. Customers were unable to use or drink their water for more than twenty-four hours. \pause
-	\item accidentally instructed the plant's fluoride feed pump to change feed rate 10\% $\to$ 80\%. \pause
-	\item Fluoride is added to water to prevent tooth decay. \pause
+	\item accidentally instructed the plant's fluoride feed pump to change feed rate 10\% $\to$ 80\%,
+		which was more than recommended.\pause
 	\item \say{The operator tried to change the command about twelve seconds later, but according to the report, the change didn't register.} \pause
 	\item A lead operator at the plant noticed the extra high levels but did not take corrective action. \pause
-	\item \say{The water main break may have been the result of the pipe bending because of pressure and settling.} \pause
-	\item \say{The break leaked about 1.2 million gallons of water, causing pressure in the system to plummet. As a result, customers were ordered not to use or drink their water because low flow can allow bacteria to grow in pipes.}
+	\item \say{The water main break may have been the result of the pipe bending because of pressure and settling},
+		possibly from the previous incident.\pause
+	\item \say{The break leaked about 1.2 million gallons of water, causing pressure in the system to plummet. As a result, customers were ordered not to use or drink their water because low flow can allow bacteria to grow in pipes.} \pause
+	\item It prompted a water shortage in Orange County that closed businesses, placed towns under states of emergency. Customers were unable to use or drink their water for more than twenty-four hours.
+}
+
+\myframe{https://shorturl.at/mxzRY}{FirstEnergy / General Electric}{14.08.2003}{
+	\item Hot day, high demand for electricity (cooling). Tree branches touched power lines in Ohio. \pause
+	\item Bug with race condition appeared in the energy management system. It stalled FirstEnergy's control room alarm system for over an hour. System operators were unaware of the malfunction. The failure deprived them of both audio and visual alerts for important changes in system state. \pause
+	\item The lack of alarms led operators to dismiss a call from American Electric Power about the tripping and reclosure of a 345 kV shared line in northeast Ohio. \pause
+	\item Overload of a power line $\to$ more heat in the power line $\to$ metal conductors expand $\to$ line sags too low $\to$ a flash over to nearby objects (e.g. trees) occurs $\to$ transient increase in current $\to$ power line disconnected for safety. \pause
+	\item Big changes of voltage, generators go off for safety, cascading effect, 256 power plants offline. \pause
+	\item Blackout, 55 million people affected for 2h-4 days, including NYC.
+}
+
+\frame{
+	\begin{center}
+		(predicted end of 45-minute presentation)
+	\end{center}
+}
+
+\myframe{https://shorturl.at/cehoU}{EVE Online}{5.12.2007}{
+	\item Game update. A script changed CWD and deleted some old files, e.g. the game's \texttt{boot.ini}. \pause
+	\item The script command ignored the CWD and assumed that it was from the root directory. \pause
+	\item Windows users got their \texttt{/boot.ini} file removed. \pause
+	\item It passed tests, as Windows recovers when it's on the first partition of the boot drive
+		 (and fails to recover otherwise), the testing env was always the same.
 }
 
 \myframe{https://shorturl.at/cjlnF}{Rust crates.io}{21.06.2023}{
@@ -143,35 +162,6 @@
 		from the faulty data center to the backup ones. It triggered a fail safe, required manual intervention.
 }
 
-\myframe{https://shorturl.at/eBFM3}{ARPANET}{27.10.1980}{
-	\item The network was unusable for several hours. All the \say{routers} (Interface Message Processor) didn't communicate. Restarting the IMPs was OK, until they connected to the net, and then they failed. \pause
-	\item One IMP flipped some bits in routing data. \pause
-	\item There were checksum, but they were only checked periodically for software efficiency.\pause
-	\item Incorrect sequence numbers caused packets to be sent in a loop and router buffers began to fill.\pause
-	\item Full buffers caused loss of keep-alive packets and nodes took themselves off the network.
-}
-
-\myframe{https://shorturl.at/mxzRY}{FirstEnergy / General Electric}{14.08.2003}{
-	\item Hot day, high demand for electricity (cooling). Tree branches touched power lines in Ohio. \pause
-	\item Bug with race condition appeared in the energy management system. It stalled FirstEnergy's control room alarm system for over an hour. System operators were unaware of the malfunction. The failure deprived them of both audio and visual alerts for important changes in system state. \pause
-	\item The lack of alarms led operators to dismiss a call from American Electric Power about the tripping and reclosure of a 345 kV shared line in northeast Ohio. \pause
-	\item Overload of a power line $\to$ more heat in the power line $\to$ metal conductors expand $\to$ line sags too low $\to$ a flash over to nearby objects (e.g. trees) occurs $\to$ transient increase in current $\to$ power line disconnected for safety. \pause
-	\item Big changes of voltage, generators go off for safety, cascading effect, 256 power plants offline. \pause
-	\item Blackout, 55 million people affected for 2h-4 days, including NYC.
-}
-
-\myframe{https://example.com}{JaneStreet}{REDACTED}{
-	\item REDACTED
-}
-
-\myframe{https://shorturl.at/cehoU}{EVE Online}{5.12.2007}{
-	\item Game update. A script changed CWD and deleted some old files, e.g. the game's \texttt{boot.ini}. \pause
-	\item The script command ignored the CWD and assumed that it was from the root directory. \pause
-	\item Windows users got their \texttt{/boot.ini} file removed. \pause
-	\item It passed tests, as Windows recovers when it's on the first partition of the boot drive
-		 (and fails to recover otherwise), the testing env was always the same.
-}
-
 \myframe{https://shorturl.at/hioBN}{GitHub}{21.10.2018}{
 	\item Maintenance of network between data centers. Mistake, 43 seconds of outage. \pause
 	\item US West and US East got disconnected, algorithm changed a read replica to a write primary in US West. \pause
@@ -181,18 +171,6 @@
 	\item Data on the sites was in weird state, inconsistent. No data loss though. \pause
 	\item Restoring backups took longer than expected, as there was additional load from active GitHub pages and lot of synchronization attempts. \pause
 	\item 24 hours of degradation.
-}
-
-\myframe{https://shorturl.at/gAEKY}{Knight Capital}{1.08.2012}{
-	\item \pause Bankruptcy of Knight Capital, 440 million dollar loss. \pause
-	\item new market, one month announcement, Knight wanted to prepare.
-		They updated software (which was 8 years old) that split big orders into many smaller ones.
-		They reused a boolean for activating unused code for a new functionality. \pause
-	\item Mistake: deployed to seven out of eight servers, no review, no alert system in case of discrepancy, no written procedures for supervision. \pause
-	\item 97 automatic email messages about unusual state, but not on high-priority channel, and they weren't read. \pause
-	\item Seven servers worked correctly, the eight ran the unused code that looped splitting of orders. \pause
-	\item No kill switch, 20 minutes of looking at what is wrong, they reverted to old code, now 8 out of 8 servers were \say{bad}.
-	\item 45 minutes running, long on 80 stocks, 3.5 billion dollars, short 3.15 billion dollars.
 }
 
 \myframe{https://shorturl.at/rBTY7}{Microsoft}{29.02.2012}{
@@ -232,6 +210,41 @@
 	\item Removing or moving \texttt{~/.local/steam} caused \texttt{STEAMROOT} to be empty,
 		which did \texttt{rm -rf /} \pause
 	\item After this blew up on social media, there were widespread reports that this was reported to Valve months earlier. But Valve doesn't triage most bugs, resulting in an extremely long time-to-mitigate, despite having multiple bug reports on this issue.
+}
+
+\myframe{https://example.com}{JaneStreet}{REDACTED}{
+	\item REDACTED
+}
+
+\myframe{https://shorturl.at/qrDM2}{CloudFlare}{03.03.2013}{
+	\item DDoS against a customer. \pause
+	\item Usual response: profile the attack, find pattern, block it. \pause
+	\item Added a rule to all routers. \pause
+	\item \say{What should have happened is that no packet should have matched that rule because no packet was actually that large. What happened instead is that the routers encountered the rule and then proceeded to consume all their RAM until they crashed.} \pause
+	\item \say{many of the routers crashed in such a way that they did not reboot automatically and we were not able to access the routers' management ports. Even though some data centers came back online initially, they fell back over again because all the traffic across our entire network hit them and overloaded their resources.} \pause
+	\item \say{ask them to physically access the routers and perform a hard reboot}
+}
+
+\myframe{https://shorturl.at/dprY0}{Google}{24.07.2014}{
+	\item Gmail, Google+, Calendar, Documents, etc. were shut down for 25 minutes. \pause
+	\item Internal system that generates configurations encountered a bug, it generated incorrect ones. \pause
+	\item Config was sent to live services, it made the users' requests be ignored, and services generated errors. \pause
+	\item The same system later automatically generated a new correct configuration and began sending it, issue resolved.
+}
+
+\myframe{https://shorturl.at/eBFM3}{ARPANET}{27.10.1980}{
+	\item The network was unusable for several hours. All the \say{routers} (Interface Message Processor) didn't communicate. Restarting the IMPs was OK, until they connected to the net, and then they failed. \pause
+	\item One IMP flipped some bits in routing data. \pause
+	\item There were checksum, but they were only checked periodically for software efficiency.\pause
+	\item Incorrect sequence numbers caused packets to be sent in a loop and router buffers began to fill.\pause
+	\item Full buffers caused loss of keep-alive packets and nodes took themselves off the network.
+}
+
+\myframe{https://shorturl.at/wxzC8}{Google}{05.04.2017}{
+	\item Replica of master server for config propagation lost access to the file system. \pause
+	\item Replica was changed to be the master server, system detected something was wrong, all load balancers started using oldest correct config from master server (which was outdated). \pause
+	\item Updating the master server triggered garbage collector to remove outdated configs. \pause
+	\item Server failed health check, automatic reboot. Clients got errors.
 }
 
 \frame{
